@@ -1,0 +1,43 @@
+//**********   Perforant Path Stimulus   ***********************************************
+
+// artificial stimulus to activate PP
+
+// extracted from
+// Dentate gyrus network model 
+// Santhakumar V, Aradi I, Soltesz I (2005) J Neurophysiol 93:437-53 
+// https://senselab.med.yale.edu/ModelDB/showModel.cshtml?model=51781&file=\dentategyrusnet2005\DG500_M7.hoc
+
+// ModelDB file along with publication:
+// Yim MY, Hanuschkin A, Wolfart J (2015) Hippocampus 25:297-308.
+// http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract
+
+// modified by
+// Man Yi Yim / 2015
+// Alexander Hanuschkin / 2011
+
+begintemplate PPstim
+
+external PP_rate_, tstop
+external PP_box_start_,PP_box_stop_			// stimulation window instead of Poisson input ...
+
+public pp, connect_pre, is_art, acell
+create acell
+objref pp
+
+
+proc init() {
+	actemp() 		
+}
+
+proc actemp() {
+      acell pp = new NetStimBox(.5)
+	  pp.start = PP_box_start_
+	  pp.forcestop = PP_box_stop_
+}
+
+func is_art() {return 1}
+
+proc connect_pre() {acell $o2 = new NetCon(pp, $o1)}
+
+endtemplate PPstim
+

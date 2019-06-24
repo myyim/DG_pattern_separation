@@ -1,0 +1,129 @@
+<html>
+    <body>
+        <p><h3> Conductance-based computer model of the DG network realizing a spatiotemporal pattern separation task employing either physiological or leaky GC phenotype.</h3> See the original paper for details:</p>
+        <p>Yim&nbsp;MY,&nbsp;Hanuschkin&nbsp;A,&nbsp;Wolfart&nbsp;J (2015) Intrinsic rescaling of granule cells restores pattern separation ability of a dentate&nbsp;gyrus&nbsp;network model during epileptic&nbsp;hyperexcitability. Hippocampus 25:297-308.</p>
+        <p> <a href="http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract"> http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract </a></p>
+        <p>&nbsp;</p>
+        <p>Dr. Man Yi&nbsp;Yim&nbsp;/ 2015</p>
+        <p>Dr. Alexander Hanuschkin / 2011</p>
+        <p>&nbsp;</p>
+
+
+        <!-- <p>---------------</p> -->
+        <p><h3>To run the NEURON simulation and data analysis under Unix system:</h3></p>
+        <p>&nbsp;</p>
+        <p>1. Compile the mod files using the command</p>
+        <p>&gt;&nbsp;nrnivmodl</p>
+        <p>&nbsp;</p>
+        <p>2. Run the simulation (select the figure you want to simulate by setting <i>fig</i> in main.hoc before running)</p>
+        <p>&gt; ./x86_64/special&nbsp;main.hoc</p>
+        <p>if your computer is running the 64-bit version, or</p>
+        <p>&gt; ./i686/special&nbsp;main.hoc</p>
+        <p>for the 32-bit.</p>
+        <p>&nbsp;</p>
+        <p>3. Open ipython or other command cells for Python, and run the data analysis</p>
+        <p>&gt; ipython</p>
+        <p>&gt; run fig1.py</p>
+        <p>&nbsp;</p>
+        <p> Alternatively, you can set the <i>idname</i> of the following python codes and run the codes separately.</p>
+        <p>&nbsp;</p>
+        <p>a) To plot the network activity in a trial (e.g. Fig 1C,D), run the python code plot_DG_all.py</p>
+        <p><img src="fig1.jpg" alt="fig1.jpg" /></p>
+        <p>&nbsp;</p>
+        <p>b) To plot the activity of a neuron (e.g. Fig 1B), run the python code GCinput.py</p>
+        <p><img src="fig2.jpg" alt="fig2.jpg" /></p>
+        <p>&nbsp;</p>
+        <p>c) To plot the network input and GC output (Fig 1E), run the python code inout_pattern.py</p>
+        <p>&nbsp;</p>
+        <p>4. To make a scatter plot of similarity scores and fit the data (Fig 1E) , run the python code sim_score.py and then the matlab code FitSimScore_ForallFigs.m</p>
+        <p><img src="fig3.jpg" alt="fig3.jpg" /></p>
+        <p>&nbsp;</p>
+        <!-- <p>---------------</p> -->
+<h3> File description </h3>
+        <p><b>Main code: run this code for the simulation</b></p>
+        <p>main.hoc</p>
+        <p>&nbsp;</p>
+        <p><b>Printing code: format of the file output</b></p>
+        <p>printfile.hoc</p>
+        <p>&nbsp;</p>
+        <p><b>Neuron models: morphology,&nbsp;conductances, ion channels and neuronal properties</b></p>
+        <p>GC.hoc</p>
+        <p>BC.hoc</p>
+        <p>MC.hoc</p>
+        <p>HIPP.hoc</p>
+        <p>&nbsp;</p>
+        <p><b>Input models: properties of the inputs</b></p>
+        <p>PP.hoc</p>
+        <p>ranstream.hoc</p>
+        <p>&nbsp;</p>
+        <p><b>Conductances: dynamics and properties of&nbsp;conductances</b></p>
+        <p>BK.mod</p>
+        <p>CaL.mod</p>
+        <p>CaN.mod</p>
+        <p>CaT.mod</p>
+        <p>ccanl.mod</p>
+        <p>HCN.mod</p>
+        <p>ichan2.mod</p>
+        <p>Ka.mod</p>
+        <p>Kir.mod</p>
+        <p>SK.mod</p>
+        <p>&nbsp;</p>
+        <p><b>Spike generators:</b></p>
+        <p>netstimbox.mod</p>
+        <p>netstim125.mod</p>
+        <p>&nbsp;</p>
+        <p><b>Python-Matlab-Analysis:</b></p>
+        <p>FitSimScore_ForallFigs.m&nbsp;fits the&nbsp;sim&nbsp;score data points by the method of least</p>
+        <p>squares.</p>
+        <p>plot_DG_all.py plots DG neurons' activity.</p>
+        <p>GCinput.py extracts and plots the inputs to a selected GC.</p>
+        <p>inout_pattern.py plots the inputs and GC outputs.</p>
+        <p>sim_score.py creates a scatter plot of output&nbsp;vs&nbsp;input&nbsp;sim&nbsp;scores.&nbsp;</p>
+        <p>&nbsp;</p>
+
+
+ <!-- <p>---------------</p> -->
+<h3> Introduced changes in Mod files compared to the original DG model of Santhakumar et al. 2005</h3>
+
+<p>In our scripts, the previously existing different potassium equilibrium potentials (Ekf, Eks, Ek..) were reduced to a single common Ek (e.g. GC.hoc, ichan2.mod, ....)).
+</p>
+
+<p>CaL.mod<br>
+CaN.mod<br>
+CaT.mod<br>
+These are new mod files for L-, N- and T-type calcium channels written by A. Hanuschkin following the description in Ca ion & L/T/N-Ca channels model of <br>
+Aradi I, Holmes WR (1999) J Comput Neurosci 6:215-35.<br>
+Note that eCa is calculated during simulation by ccanl.mod (see below). ecat, ecal values set in Santhakumar are not used in our model scripts.</p>
+
+<p>ccanl.mod<br>
+Warning by Ted Carnevale 2015:<br>
+The expression that this mechanism uses to calculate the contribution of ica to the rate of change of calcium concentration in the shell is <br>
+-ica*(1e7)/(depth*FARADAY)<br>
+but it should really be<br>
+-ica*(1e7)/(depth*2*FARADAY)<br>
+because the valence of ca is 2.  The result of this omission is that the mechanism behaves as if the shell is only 1/2 as thick as the value specified by the depth parameter.</p>
+
+<p>ichan2.mod<br>
+- added a tonic (leak) GABAA conductance to be modified during epilepsy (see Young CC, Stegen M, Bernard R, Muller M, Bischofberger J, Veh RW, Haas CA, Wolfart J (2009) J Physiol 587:4213-4233 <br>
+<a href="http://onlinelibrary.wiley.com/doi/10.1113/jphysiol.2009.170746/abstract">http://onlinelibrary.wiley.com/doi/10.1113/jphysiol.2009.170746/abstract</a>)</p>
+
+<p>Kir.mod<br>
+New Mod file<br>
+Added an inward rectifier potassium conductance to be modied during epilepsy (see Young CC, Stegen M, Bernard R, Muller M, Bischofberger J, Veh RW, Haas CA, Wolfart J (2009) J Physiol 587:4213-4233)<br>
+Channel description and parameters from:<br>
+Stegen M, Kirchheim F, Hanuschkin A, Staszewski O, Veh R, and Wolfart J. Cerebral Cortex, 22:9, 2087-2101, 2012.<br>
+<a href="http://cercor.oxfordjournals.org/content/22/9/2087.long">http://cercor.oxfordjournals.org/content/22/9/2087.long</a></p>
+
+<p>SK.mod<br>
+Correction: use of correct dynamics (see rate() lines: 95-101)</p>
+
+<!-- <p>---------------</p> -->
+<h3> Other remarks</h3>
+<p>BK.mod<br>
+Please note that cai was not assiged here in the original Santhakumar et al. (2005) version (which we used). It should be cai = ncai + lcai + tcai, as noted by <br>
+Morgan RJ, Santhakumar V, Soltesz I (2007) Prog Brain Res 163:639-58<br>
+The bug was fixed to make the channel properly dependent on the current calcium concentration. See <br>
+<a href="https://senselab.med.yale.edu/modeldb/showModel.cshtml?model=124513&file=/dentate_gyrus/CaBK.mod">  https://senselab.med.yale.edu/modeldb/showModel.cshtml?model=124513&file=/dentate_gyrus/CaBK.mod </a></p>
+
+    </body>
+</html>

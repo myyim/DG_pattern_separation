@@ -1,0 +1,23 @@
+random_stream_offset_ = 1000
+
+begintemplate RandomStream
+public r, repick, start, stream
+external random_stream_offset_
+external trial 
+objref r
+proc init() {
+	stream = $1
+        // print "init RandomStream instance"
+	r = new Random()
+	start()
+}
+func start() {
+	if (stream<5) {
+ 		//	print "start Seed for Poisson Generator ",stream," with ",(stream*random_stream_offset_ + 1)
+	}
+	return r.MCellRan4(stream*random_stream_offset_ + 1 + trial)
+}
+func repick() {
+	return r.repick()
+}
+endtemplate RandomStream

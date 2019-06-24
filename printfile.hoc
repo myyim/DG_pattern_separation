@@ -1,0 +1,170 @@
+//**********************       PRINT FILES         *************************
+
+// ModelDB file along with publication:
+// Yim MY, Hanuschkin A, Wolfart J (2015) Hippocampus 25:297-308.
+// http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract
+
+// Man Yi Yim / 2015
+
+// Print out the output spikes, membrane potential and network connections in the main code into files
+// This code contains the following proc's
+// proc saveNet()
+// proc sMatrix_init()
+// proc sMatrix()
+// proc SpkMx()
+// proc SpkMx_template()
+// proc write_customstate()
+// proc write_stimIn()
+
+// Read out the ID of pre or precell (by Ted Carnevale)
+// argument is a NetCon
+
+obfunc myprecell() { localobj nil
+  // nil points to NULLobject
+  if ($o1.precell() == nil) {
+    return $o1.pre()
+  } else {
+    return $o1.precell()
+  }
+}
+
+//***Network connections***
+strdef DGNC_name_
+objref dfile
+dfile = new File()
+proc saveNet(){ local i
+	print "write out Net cons file ..."
+        sprint (DGNC_name_,"%s-%d-%d%s.%s", "DGNC", PP_box_startid_, PP_box_nr_, idname, suffix)
+	dfile.wopen(DGNC_name_)
+	for i=0, nclist.count-1 {
+		dfile.printf("%s\t%s\n", myprecell(nclist.object(i)), nclist.object(i).postcell)}
+// vbc2gc.x[i], vmc2gc.x[i], vhc2gc.x[i], vgc2gc.x[i])} ??
+	dfile.close()
+}
+
+//***Header of the voltage file***
+strdef strmat
+objref efile
+efile = new File()
+strdef DGVt_name_
+proc sMatrix_init(){				// here the header info for sMatrix is written out...
+	n_to_print = 500
+	print "Output memb voltage traces of every ", ngcell/n_to_print, " GC and all other cells to file"
+        sprint (DGVt_name_,"%s-%d-%d%s.%s", "DGVt", PP_box_startid_, PP_box_nr_, idname, suffix)
+	efile.wopen(DGVt_name_)
+	efile.printf("# t\t")
+	efile.printf("\n")
+	efile.close(DGVt_name_)
+}
+
+proc sMatrix(){ local j
+	efile.aopen(DGVt_name_)
+	efile.printf("%f\t", t)
+	for i = 0, n_to_print-1 {
+		efile.printf("%f\t", cells.object[int(i*ngcell/n_to_print)].soma.v(0.5))}
+	efile.printf("\n")
+	efile.close(DGVt_name_)
+}
+
+proc SpkMx() { local i, j
+        strdef DGsp_name_
+	sprint (DGsp_name_,"%s-%d-%d%s.%s", "DGsp", PP_box_startid_, PP_box_nr_, idname, suffix)
+        print "Create: ", DGsp_name_   // output filename
+        dfile.wopen(DGsp_name_)
+ 	k = 0 
+        while (k < VmT.size) {
+                for j = 0, (ngcell+nbcell+nmcell+nhcell-1) {
+                        if(Spike[j].x[k] != 0) {
+                                dfile.printf("%f\t%d\n", VmT.x[k], j)           // write out time of spike and cell id!
+				// Spike_times[j].append(VmT.x[k])		// generate vector of spike times for each cell. Moved to seperate function
+                        }
+                }
+                k +=1
+        }
+        dfile.close(DGsp_name_)
+}
+
+proc SpkMx_template() { local i, j
+        strdef DGsp_name_
+
+	sprint (DGsp_name_,"%s-%d-%d%s.%s", "GCsp", PP_box_startid_, PP_box_nr_, idname, suffix)
+
+        print "Create: ",DGsp_name_   // output filename
+
+        dfile.wopen(DGsp_name_)
+
+        k = 0 
+        while(k <  VmT.size) {
+                for j = 0, ngcell-1 {
+                        if(Spike[j].x[k] != 0) {
+                                dfile.printf("%f\t%d\n", VmT.x[k], j)           // write out time of spike and cell id!
+                        }
+                }
+                k +=1
+        }
+        dfile.close(DGsp_name_)
+}
+
+proc write_customstate() { local i, j
+        strdef f_name_
+	sprint (f_name_,"%s-%d-%d%s.%s", "NetworkState_OUT_", PP_box_startid_, PP_box_nr_, idname, suffix)
+
+        print "Create: ",f_name_   // output filename
+
+        dfile.wopen(f_name_)
+
+  	for i = 0, ngcell -1 {
+    		forsec Gcell[i].all { // iterate over all sections of this cell
+      			for (x,0) { // iterate over internal nodes
+                                dfile.printf("%f\n", v)           // write out time of spike and cell id!
+      			}
+    		}
+  	}
+        for i = 0, nbcell -1 {
+                forsec Bcell[i].all { // iterate over all sections of this cell
+                        for (x,0) { // iterate over internal nodes
+                                dfile.printf("%f\n", v)           // write out time of spike and cell id!
+                        }
+                }
+        }
+        for i = 0, nmcell -1 {
+                forsec Mcell[i].all { // iterate over all sections of this cell
+                        for (x,0) { // iterate over internal nodes
+                                dfile.printf("%f\n", v)           // write out time of spike and cell id!
+                        }
+                }
+        }
+        for i = 0, nhcell -1 {
+                forsec Hcell[i].all { // iterate over all sections of this cell
+                        for (x,0) { // iterate over internal nodes
+                                dfile.printf("%f\n", v)           // write out time of spike and cell id!
+                        }
+                }
+        }
+        dfile.close(f_name_)
+}
+
+proc write_stimIn() {
+        strdef f_name_
+	sprint (f_name_,"%s-%d-%d%s.%s", "StimIn", PP_box_startid_, PP_box_nr_, idname, suffix)
+
+        print "Create: ",f_name_   // output filename
+
+        dfile.wopen(f_name_)
+	for i=0,npp-1 {
+           for j=0,vec_stim[i].size()-1 {
+             dfile.printf("%f\t%d\n",vec_stim[i].x[j],i)
+	   }
+	}
+
+	// write out noise input...
+        if (print_stim_noise == 1){
+         if (debug_ == 2) {print "write out noise input..." }
+         for i=0,npp-1 {
+           for j=0,vec_stim_noise[i].size()-1 {
+             dfile.printf("%f\t%d\n",vec_stim_noise[i].x[j],i+npp)
+           }
+         }
+        }
+       dfile.close(f_name_)
+}

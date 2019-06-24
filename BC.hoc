@@ -1,0 +1,239 @@
+//**********************       BASKET CELL         ****************************************
+
+// extracted from
+// Dentate gyrus network model 
+// Santhakumar V, Aradi I, Soltesz I (2005) J Neurophysiol 93:437-53 
+// https://senselab.med.yale.edu/ModelDB/showModel.cshtml?model=51781&file=\dentategyrusnet2005\DG500_M7.hoc
+
+// ModelDB file along with publication:
+// Yim MY, Hanuschkin A, Wolfart J (2015) Hippocampus 25:297-308.
+// http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract
+
+// modified by 
+// Man Yi Yim / 2015
+// Alexander Hanuschkin / 2011
+
+objref Bcell[nbcell]
+
+begintemplate BasketCell
+
+ndend1=4
+ndend2=4
+ndend3=4
+ndend4=4
+
+public  pre_list, connect_pre, subsets, is_art, is_connected
+public vbc2gc, vmc2gc, vhc2gc, vgc2bc, vbc2bc, vmc2bc, vhc2bc, vgc2mc, vbc2mc, vmc2mc, vhc2mc, vgc2hc, vmc2hc
+public soma, bcdend1, bcdend2, bcdend3, bcdend4
+public all, adend, bdend, cdend, ddend
+create soma, bcdend1[ndend1], bcdend2[ndend2], bcdend3[ndend3], bcdend4[ndend4]
+objref syn, pre_list
+
+
+//to include steady state current injection
+nst=1
+objectvar stim[nst]
+
+objref syn
+proc init() {
+	pre_list = new List()
+	subsets()
+	temp()
+	synapse()
+}
+
+objref all, adend, bdend, cdend, ddend
+
+proc subsets() { local i
+	objref all, adend, bdend, cdend, ddend
+	all = new SectionList()
+		soma all.append()
+		for i=0, 3 bcdend1 [i] all.append()
+		for i=0, 3 bcdend2 [i] all.append()
+		for i=0, 3 bcdend3 [i] all.append()
+		for i=0, 3 bcdend4 [i] all.append()
+
+	adend  = new SectionList()
+		bcdend1 [0] adend.append()
+		bcdend2 [0] adend.append()
+		bcdend3 [0] adend.append()
+		bcdend4 [0] adend.append()
+
+	bdend  = new SectionList()
+		bcdend1 [1] bdend.append()
+		bcdend2 [1] bdend.append()
+		bcdend3 [1] bdend.append()
+		bcdend4 [1] bdend.append()
+
+	cdend  = new SectionList()
+		bcdend1 [2] cdend.append()
+		bcdend2 [2] cdend.append()
+		bcdend3 [2] cdend.append()
+		bcdend4 [2] cdend.append()
+
+	ddend  = new SectionList()
+		bcdend1 [3] ddend.append()
+		bcdend2 [3] ddend.append()
+		bcdend3 [3] ddend.append()
+		bcdend4 [3] ddend.append()
+}
+
+proc temp() {
+
+	soma {nseg=1 L=20 diam=15} // changed L & diam
+		
+	bcdend1 [0] {nseg=1 L=75 diam=4}	// bcdend 1 and 2 are apical
+	bcdend1 [1] {nseg=1 L=75 diam=3}
+	bcdend1 [2] {nseg=1 L=75 diam=2}
+ 	bcdend1 [3] {nseg=1 L=75 diam=1}
+
+	bcdend2 [0] {nseg=1 L=75 diam=4}
+	bcdend2 [1] {nseg=1 L=75 diam=3}
+	bcdend2 [2] {nseg=1 L=75 diam=2}
+	bcdend2 [3] {nseg=1 L=75 diam=1}
+ 		 
+	bcdend3 [0] {nseg=1 L=50 diam=4} 	// bcdend 3 and 4 are basal
+	bcdend3 [1] {nseg=1 L=50 diam=3}
+	bcdend3 [2] {nseg=1 L=50 diam=2}
+	bcdend3 [3] {nseg=1 L=50 diam=1} 
+	
+	bcdend4 [0] {nseg=1 L=50 diam=4}
+	bcdend4 [1] {nseg=1 L=50 diam=3}
+	bcdend4 [2] {nseg=1 L=50 diam=2}
+	bcdend4 [3] {nseg=1 L=50 diam=1} 	
+
+    
+	forsec all {
+		insert ccanl
+	catau_ccanl = 10
+	caiinf_ccanl = 5.e-6
+		insert ka
+	gkabar_ka=0.00015
+		insert nca  
+	gncabar_nca=0.0008   
+		insert lca 
+	glcabar_lca=0.005
+		insert sk
+	gskbar_sk=0.000002
+		insert bk
+	gkbar_bk=0.0002
+	}
+
+	soma {insert ichan2  
+	gnatbar_ichan2=0.12  // Santhakumar et al (2005) tab2
+	gkfbar_ichan2=0.013  // Santhakumar et al (2005) tab2
+	gl_ichan2 = 0.00018
+	cm=1.4
+	} 
+
+	forsec adend {insert ichan2
+	gnatbar_ichan2=0.12  // Santhakumar et al (2005) tab2
+	gkfbar_ichan2=0.013
+	gl_ichan2 = 0.00018
+	cm=1.4
+	}		
+	forsec	bdend {insert ichan2
+	gnatbar_ichan2=0.0
+	gkfbar_ichan2=0.00
+	gl_ichan2 = 0.00018
+	cm=1.4}
+		
+	forsec 	cdend {insert ichan2
+	gnatbar_ichan2=0.0
+	gkfbar_ichan2=0.00
+	gl_ichan2 = 0.00018
+	cm=1.4}
+
+	forsec	ddend {insert ichan2
+	gnatbar_ichan2=0.0
+	gkfbar_ichan2=0.00
+	gl_ichan2 = 0.00018
+	cm=1.4}
+
+
+	connect bcdend1[0](0), soma(1)
+	connect bcdend2[0](0), soma(1)
+	connect bcdend3[0](0), soma(0)
+	connect bcdend4[0](0), soma(0)
+	for i=1,3 {
+	connect bcdend1[i](0), bcdend1[i-1](1)
+	}
+	for i=1,3 {
+	connect bcdend2[i](0), bcdend2[i-1](1)
+	}
+	for i=1,3 {
+	connect bcdend3[i](0), bcdend3[i-1](1)
+	}
+	for i=1,3 {
+	connect bcdend4[i](0), bcdend4[i-1](1)
+	}
+
+
+	forsec all {Ra=100}
+	forsec all {	ena 	= 	50 	// ena was unified from enat=55 (BC, HIPP, MC) and enat=45 (GC) in Santhakumar et al. (2005) <ah>
+		    	ek 	= 	-90  	// simplified ekf=eks=ek=esk; note the eK was erroneously reported as -105mV in the Yim et al. 2015 <ah>
+		 	el_ichan2 =	-60.06 
+			cao_ccanl =	2 }   
+}
+
+
+//Defining Synapses on to Basket Cells
+proc synapse() {
+	bcdend1 [3] syn = new Exp2Syn(0.5)	//PP(AMPA) syn to apical dist dend Dingledine '95
+	syn.tau1 = 2	syn.tau2 = 6.3	syn.e = 0 
+	pre_list.append(syn)
+
+	bcdend2 [3] syn = new Exp2Syn(0.5)	//PP(AMPA) syn to apical dist dend Dingledine '95
+	syn.tau1 = 2	syn.tau2 = 6.3	syn.e = 0  
+	pre_list.append(syn)
+
+	bcdend1 [0] syn = new Exp2Syn(0.5)	//GC(AMPA) syn to prox dend Geiger '97
+	syn.tau1 = .3	syn.tau2 = .6	syn.e = 0
+	pre_list.append(syn)
+
+	bcdend2 [0] syn = new Exp2Syn(0.5)	//GC(AMPA) syn to prox dend Geiger '97
+	syn.tau1 = .3	syn.tau2 = .6	syn.e = 0
+	pre_list.append(syn)
+
+	bcdend3 [0] syn = new Exp2Syn(0.5)	//GC(AMPA) syn to prox dend Geiger '97
+	syn.tau1 = .3	syn.tau2 = .6	syn.e = 0
+	pre_list.append(syn)
+
+	bcdend4 [0] syn = new Exp2Syn(0.5)	//GC(AMPA) syn to prox dend Geiger '97
+	syn.tau1 = .3	syn.tau2 = .6	syn.e = 0
+	pre_list.append(syn)
+
+	bcdend1 [1] syn = new Exp2Syn(0.5)	//MC(AMPA) syn to apical IML dend
+	syn.tau1 = 0.9	syn.tau2 = 3.6	syn.e = 0 // *** Estimated based on CA3>BC min stim Dingledine '95
+	pre_list.append(syn)
+
+	bcdend2 [1] syn = new Exp2Syn(0.5)	//MC(AMPA) syn to apical IML dend
+	syn.tau1 = 0.9	syn.tau2 = 3.6	syn.e = 0 // *** Estimated based on CA3>BC min stim Dingledine '95
+	pre_list.append(syn)
+
+	bcdend1 [1] syn = new Exp2Syn(0.5)	//BC(GABA) syn to apical IML dend Bartos
+	syn.tau1 = 0.16		syn.tau2 = 1.8	syn.e = -70
+	pre_list.append(syn)
+
+	bcdend2 [1] syn = new Exp2Syn(0.5)	//BC(GABA) syn to apical IML dend Bartos
+	syn.tau1 = 0.16		syn.tau2 = 1.8	syn.e = -70
+	pre_list.append(syn)
+
+	bcdend1 [3] syn = new Exp2Syn(0.5)	//HIPP(GABA) syn to apical distal dend 
+	syn.tau1 = 0.4	syn.tau2 = 5.8	syn.e = -70 // *** Estimated as HIPP>GC
+	pre_list.append(syn)
+
+	bcdend2 [3] syn = new Exp2Syn(0.5)	//HIPP(GABA) syn to apical distal dend 
+	syn.tau1 = 0.4	syn.tau2 = 5.8	syn.e = -70 // *** Estimated as HIPP>GC
+	pre_list.append(syn)
+
+// Total of 12 synapses 	0,1 PP; 	2-5 GC; 	6,7 MC; 	8,9 BC; 	10,11 HIPP 
+	}
+
+proc connect_pre() {  
+	soma $o2 = new NetCon (&v(1), $o1)
+	}
+
+func is_art() { return 0 }
+
+endtemplate BasketCell

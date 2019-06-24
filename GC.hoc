@@ -1,0 +1,298 @@
+//**********************       GRANULE CELL         ****************************************
+
+// extracted from
+// Dentate gyrus network model 
+// Santhakumar V, Aradi I, Soltesz I (2005) J Neurophysiol 93:437-53 
+// https://senselab.med.yale.edu/ModelDB/showModel.cshtml?model=51781&file=\dentategyrusnet2005\DG500_M7.hoc
+
+// ModelDB file along with publication:
+// Yim MY, Hanuschkin A, Wolfart J (2015) Hippocampus 25:297-308.
+// http://onlinelibrary.wiley.com/doi/10.1002/hipo.22373/abstract
+
+// modified and augmented by
+// Man Yi Yim / 2015
+// Alexander Hanuschkin / 2011
+
+objref Gcell[ngcell]
+
+begintemplate GranuleCell
+
+external scale_gpas_dg_
+external scale_sk_dg_
+external scale_gabaa_
+external scale_kir_
+
+ndend1=4
+ndend2=4
+public  pre_list, connect_pre, subsets, is_art, is_connected
+public  vbc2gc, vmc2gc, vhc2gc, vgc2bc, vbc2bc, vmc2bc, vhc2bc, vgc2mc, vbc2mc, vmc2mc, vhc2mc, vgc2hc, vmc2hc
+public soma, gcdend1, gcdend2
+public all, gcldend, pdend, mdend, ddend
+
+create soma, gcdend1[ndend1], gcdend2[ndend2]
+objref syn, pre_list
+
+
+//to include steady state current injection
+nst=1
+objectvar stim[nst]
+public stim
+// double stimdur[nst], stimdel[nst], stimamp[nst]
+// public stim, stimdur, stimamp, stimdel
+
+proc init() {
+	pre_list = new List()
+	subsets()
+	gctemp()
+	synapse()
+}
+
+objref all, gcldend, pdend, mdend, ddend
+proc subsets(){ local i
+	objref all, gcldend, pdend, mdend, ddend
+	all = new SectionList()
+		soma all.append()
+		for i=0, 3 gcdend1 [i] all.append()
+		for i=0, 3 gcdend2 [i] all.append()
+
+	gcldend  = new SectionList()
+		gcdend1 [0] gcldend.append()
+		gcdend2 [0] gcldend.append()
+
+	pdend  = new SectionList()
+		gcdend1 [1] pdend.append()
+		gcdend2 [1] pdend.append()
+
+	mdend  = new SectionList()
+		gcdend1 [2] mdend.append()
+		gcdend2 [2] mdend.append()
+
+	ddend  = new SectionList()
+		gcdend1 [3] ddend.append()
+		gcdend2 [3] ddend.append()
+}
+proc gctemp() {
+
+scale_area = 1./1.13
+
+// ********** Parameters for reversal potentials (assigned below) *********
+e_gabaa_ 	= -70.			// reversal potential GABAA
+
+// ***************** Parameters
+g_pas_fit_ 	= 1.44e-05  * (scale_gpas_dg_ / 100.) 
+gkbar_kir_fit_  = 1.44e-05 * (scale_kir_ / 100.) 
+ggabaabar_fit_  = 0.722e-05 * (scale_gabaa_ / 100.) 
+
+// *********************** PAS ******************************************
+cm_fit_ 	=  1.			
+Ra_fit_ 	=  184. 			// fitted
+
+// *********************** KIR *****************************************
+vhalfl_kir_fit_ = -98.923594  		// for Botzman I/V curve, fitted
+kl_kir_fit_     = 10.888538 		// for Botzman I/V curve, fitted
+q10_kir_fit_    = 1.			// temperature factor, set to 1
+vhalft_kir_fit_ = 67.0828           	// 3 values for tau func from Stegen et al. 2011
+at_kir_fit_     = 0.00610779
+bt_kir_fit_     = 0.0817741
+
+// ********************* Neuron Morphology etc ***************************
+LJP_ 		= -10.			// Liquid junction potential [mV]
+V_rest 		= -68.16+LJP_   	// resting potential [mV]
+V_init 		= -68.16+LJP_   	// initial potential [mV]
+
+// ******************** GABAA ******************** 
+e_pas_fit_	= -83.8
+e_pas_fit_Dend 	= -81.74
+
+	soma {nseg=1 L=16.8*scale_area diam=16.8*scale_area} // changed L & diam
+		
+	gcdend1 [0] {nseg=1 L=50*scale_area diam=3*scale_area}
+	for i = 1, 3	gcdend1 [i] {nseg=1 L=150*scale_area diam=3*scale_area}
+
+	gcdend2 [0] {nseg=1 L=50*scale_area diam=3*scale_area}
+	for i = 1, 3	gcdend2 [i] {nseg=1 L=150*scale_area diam=3*scale_area}	
+
+	forsec all {
+		insert ccanl
+			catau_ccanl = 10
+			caiinf_ccanl = 5.e-6
+		Ra=Ra_fit_
+	}
+
+	soma {insert ichan2  						
+			gnatbar_ichan2=0.12 				// value Aradi & Holmes 1999 <ah>
+			gkfbar_ichan2=0.016  
+			gksbar_ichan2=0.006
+			gl_ichan2 = g_pas_fit_
+			el_ichan2 = e_pas_fit_				// set leak reversal poti to gain Vrest of cell <ah>
+		insert ka 						
+			gkabar_ka=0.012
+		insert nca  						
+			gncabar_nca=0.002  
+		insert lca 						
+			glcabar_lca=0.005
+		insert tca						
+			gcatbar_tca=0.000037
+		insert sk						
+			gskbar_sk=0.001  * (scale_sk_dg_ / 100.)
+		insert bk 						
+			gkbar_bk=0.0006
+		cm=cm_fit_
+	} 
+
+	forsec gcldend {insert ichan2
+			gnatbar_ichan2=0.018  				// value Aradi & Holmes 1999 <ah>
+			gkfbar_ichan2=0.004
+			gksbar_ichan2=0.006
+			gl_ichan2 = g_pas_fit_
+			el_ichan2 = e_pas_fit_				// set leak reversal poti to gain Vrest of cell <ah>
+		insert nca  // HAV-N- Ca channel
+			gncabar_nca=0.003  				// value Aradi & Holmes 1999 <ah>
+		insert lca 
+			glcabar_lca=0.0075
+		insert tca
+			gcatbar_tca=0.000075
+		insert sk
+			gskbar_sk=0.0004 * (scale_sk_dg_ / 100.)
+		insert bk
+			gkbar_bk=0.0006
+		cm=cm_fit_
+	}
+		
+	forsec pdend {insert ichan2
+			gnatbar_ichan2=0.013				// value Aradi & Holmes 1999 <ah>
+			gkfbar_ichan2=0.004
+			gksbar_ichan2=0.006
+			gl_ichan2 = g_pas_fit_ * (0.000063/0.00004)
+			el_ichan2 = e_pas_fit_Dend 			// see comment above <ah>
+		insert nca  // HAV-N- Ca channel
+			gncabar_nca=0.001  				// value Aradi & Holmes 1999 <ah>
+		insert lca 
+			glcabar_lca=0.0075
+		insert tca
+			gcatbar_tca=0.00025
+		insert sk
+			gskbar_sk=0.0002  * (scale_sk_dg_ / 100.)
+		insert bk
+			gkbar_bk=0.001
+		cm=cm_fit_*1.6
+	}
+		
+	forsec mdend {insert ichan2
+			gnatbar_ichan2=0.008				// value Aradi & Holmes 1999 <ah>
+			gkfbar_ichan2=0.001
+			gksbar_ichan2=0.006
+			gl_ichan2 = g_pas_fit_ * (0.000063/0.00004)
+			el_ichan2 = e_pas_fit_Dend  			// see comment above <ah>
+		insert nca  
+			gncabar_nca=0.001  				// value Aradi & Holmes 1999 <ah>
+		insert lca 
+			glcabar_lca=0.0005
+		insert tca
+			gcatbar_tca=0.0005
+		insert sk
+			gskbar_sk=0.0     * (scale_sk_dg_ / 100.)
+		insert bk
+			gkbar_bk=0.0024
+		cm=cm_fit_*1.6
+	}
+
+	forsec ddend {insert ichan2
+			gnatbar_ichan2=0.0
+			gkfbar_ichan2=0.001
+			gksbar_ichan2=0.008
+			gl_ichan2 = g_pas_fit_ * (0.000063/0.00004)
+			el_ichan2 = e_pas_fit_Dend  			// see comment above <ah>
+		insert nca  
+			gncabar_nca=0.001  				// value Aradi & Holmes 1999 <ah>
+		insert lca 
+			glcabar_lca=0.0
+		insert tca
+			gcatbar_tca=0.001
+		insert sk
+			gskbar_sk=0.0     * (scale_sk_dg_ / 100.)
+		insert bk
+			gkbar_bk=0.0024
+		cm=cm_fit_*1.6
+	}
+		
+	
+	connect gcdend1[0](0), soma(1)
+	connect gcdend2[0](0), soma(1)
+	for i=1,3 {
+		connect gcdend1[i](0), gcdend1[i-1](1)
+	}
+	for i=1,3 {
+		connect gcdend2[i](0), gcdend2[i-1](1)
+	}
+
+	forsec all {
+		insert kir						// kir conductance added in Yim et al. 2015, note that eK=-90mV is used instead of -105mV as reported in the paper <ah>
+			gkbar_kir       =       gkbar_kir_fit_
+			vhalfl_kir      =       vhalfl_kir_fit_
+			kl_kir          =       kl_kir_fit_
+			vhalft_kir      =       vhalft_kir_fit_
+			at_kir          =       at_kir_fit_
+			bt_kir          =       bt_kir_fit_
+			ggabaa_ichan2 	= 	ggabaabar_fit_		// added GabaA in Yim et al. 2015 <ah> 
+			egabaa_ichan2 	= 	e_gabaa_		// reversal potential GABAA added in Yim et al. 2015 <ah>
+        		ena 		= 	50		        // ena was unified from enat=55 (BC, HIPP, MC) and enat=45 (GC) in Santhakumar et al. (2005) <ah>
+                        ek		=	-90		        // simplified ekf=eks=ek=esk; note the eK was erroneously reported as -105mV in the Yim et al. 2015 <ah>
+                        cao_ccanl	=	2 }
+} // end of gctemp()
+
+// Retrieval of objref arguments uses the syntax: $o1, $o2, ..., $oi.
+// http://web.mit.edu/neuron_v7.1/doc/help/neuron/general/ocsyntax.html#arguments
+proc connect_pre() {  
+	soma $o2 = new NetCon (&v(1), $o1)
+}
+
+
+// Define synapses on to GCs using 
+//- an Exp2Syn object (parameters tau1 -rise, tau2 -decay, 
+// time constant [ms] and e - rev potential [mV]
+// delay [ms] and weight -variablr betw 0 and 1 [1 corresponding to 1 'S]
+
+proc synapse() {
+	gcdend1[3] syn = new Exp2Syn(0.5) // PP syn based on data from Greg Hollrigel and Kevin Staley   <AH> NOTE: both synapses are identical!
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	gcdend2[3] syn = new Exp2Syn(0.5) // PP syn based on Greg and Staley
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	gcdend1[1] syn = new Exp2Syn(0.5) // MC syn *** Estimated
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	gcdend2[1] syn = new Exp2Syn(0.5) // MC syn   *** Estimated
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	gcdend1[3] syn = new Exp2Syn(0.5) // HIPP  syn based on Harney and Jones corrected for temp
+	syn.tau1 = 0.5	syn.tau2 = 6	syn.e = -70
+	pre_list.append(syn)
+
+	gcdend2[3] syn = new Exp2Syn(0.5) // HIPP syn based on Harney and Jones corrected for temp
+	syn.tau1 = 0.5	syn.tau2 = 6	syn.e = -70
+	pre_list.append(syn)
+
+	soma syn = new Exp2Syn(0.5) // BC  syn  based on Bartos
+	syn.tau1 = 0.26	syn.tau2 = 5.5	syn.e = -70
+	pre_list.append(syn)
+
+	gcdend1[1] syn = new Exp2Syn(0.5) 								// NOTE: SPROUTED SYNAPSE based on Molnar and Nadler
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	gcdend2[1] syn = new Exp2Syn(0.5) 								// NOTE: SPROUTED SYNAPSE
+	syn.tau1 = 1.5	syn.tau2 = 5.5	syn.e = 0
+	pre_list.append(syn)
+
+	// Total of 7 synapses per GC 0,1 PP; 	2,3 MC;	4,5 HIPP and 	6 BC	7,8 Sprout
+}
+
+func is_art() { return 0 }
+
+endtemplate GranuleCell
